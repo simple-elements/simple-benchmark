@@ -1,0 +1,16 @@
+{
+  "name": "simple-benchmark",
+  "version": "0.0.0",
+  "homepage": "https://github.com/simple-elements/simple-benchmark",
+  "authors": [
+    "Chris Joel <cdata@google.com>"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "font-roboto": "polymer/font-roboto#~0.5.5",
+    "paper-shadow": "polymer/paper-shadow#0.8-preview",
+    "d3": "~3.5.5",
+    "polymer": "polymer/polymer#0.8-preview",
+    "webcomponentsjs": "webcomponents/webcomponentsjs#~0.5.5"
+  }
+}
