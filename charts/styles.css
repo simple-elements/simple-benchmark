@@ -1,4 +1,4 @@
-.chart-container .line-path {
+html /deep/ .chart-container .line-path {
   stroke: #888;
   stroke-width: 2px;
   fill: none;

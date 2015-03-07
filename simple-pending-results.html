@@ -26,6 +26,11 @@
     .card {
       position: relative;
       font-family: RobotoDraft, sans-serif;
+      transition: opacity 0.5s cubic-bezier(.44,.13,.18,.99);
+    }
+
+    :host([complete]) .card {
+      opacity: 0.65;
     }
 
     .card paper-shadow {
@@ -98,7 +103,7 @@
       this.chart = new PendingResultsChart(this.results);
       Polymer.dom.querySelector(
         '.chart-container',
-        this.shadyRoot
+        this.shadyRoot || this.shadowRoot
       ).appendChild(this.chart.element);
     },
 
