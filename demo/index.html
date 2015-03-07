@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Simple Benchmark Demo</title>
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <link rel="import" href="../simple-benchmark.html">
+    <style>
+      body {
+        margin: 0;
+        padding: 1em;
+      }
+    </style>
+  </head>
+  <body>
+    <simple-benchmark runs-per-test="100">
+      <template data-name="Native button disabled behavior.">
+        <script>
+          StartTest();
+        </script>
+        <button id="NativeButton">Native Button</button>
+        <script>
+          NativeButton.disabled = true;
+          NativeButton.removeAttribute('disabled');
+        </script>
+        <script>
+          EndTest();
+        </script>
+      </template>
+      <template data-name="Extended button disabled behavior.">
+        <link rel="import" href="./extended-button.html">
+        <script>
+          StartTest();
+        </script>
+        <extended-button id="ExtendedButton">Extended Button</extended-button>
+        <script>
+          ExtendedButton.disabled = true;
+          ExtendedButton.removeAttribute('disabled');
+        </script>
+        <script>
+          EndTest();
+        </script>
+      </template>
+    </simple-benchmark>
+    <script>
+      document.body.querySelector('simple-benchmark').runTests();
+    </script>
+  </body>
+</html>

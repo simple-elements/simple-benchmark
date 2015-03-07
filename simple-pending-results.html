@@ -1,0 +1,137 @@
+<script src="../d3/d3.js"></script>
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-shadow/paper-shadow.html">
+<link rel="import" href="../font-roboto/roboto.html">
+<link rel="import" href="../layout/layout.html">
+
+<link rel="stylesheet" href="./charts/styles.css">
+<script src="./charts/pending-results.js"></script>
+
+<dom-module id="simple-pending-results">
+  <style>
+    :host {
+      overflow: visible;
+    }
+
+    h1 {
+      font-family: RobotoDraft;
+    }
+
+    .chart-container {
+      display: block;
+      position: relative;
+      height: 50px;
+    }
+
+    .card {
+      position: relative;
+      font-family: RobotoDraft, sans-serif;
+    }
+
+    .card paper-shadow {
+      border-radius: 2px;
+    }
+
+    .card > header {
+      margin: 0;
+      padding: 10px;
+      color: #333;
+    }
+
+    .card > header h1, .card > header span {
+      margin: 0;
+      font-size: 1em;
+    }
+
+    .card > header span {
+      text-align: right;
+    }
+  </style>
+  <template>
+    <section class="card">
+      <header class="flex layout horizontal">
+        <h1 class="flex-1">[[results.name]]</h1>
+        <span class="flex-1">
+          <span>[[results.average]]</span> (&plusmn; <span>[[results.standardDeviation]]</span>) ms
+        </span>
+      </header>
+      <paper-shadow class="fit" z="[[shadowZ]]" animated></paper-shadow>
+      <div class="chart-container flex-3"></div>
+    </section>
+  </template>
+</dom-module>
+<script>
+  Polymer({
+    is: 'simple-pending-results',
+
+    properties: {
+      results: {
+        type: Object,
+        value: null,
+        observer: 'resultsChanged',
+      },
+
+      chart: {
+        type: Object,
+        value: null,
+      },
+
+      complete: {
+        type: Boolean,
+        value: false,
+        reflect: true
+      },
+
+      started: {
+        type: Boolean,
+        value: false,
+        reflect: true
+      },
+
+      shadowZ: {
+        type: Number,
+        computed: 'computeShadowZ(complete)'
+      }
+    },
+
+    ready: function () {
+      this.chart = new PendingResultsChart(this.results);
+      Polymer.dom.querySelector(
+        '.chart-container',
+        this.shadyRoot
+      ).appendChild(this.chart.element);
+    },
+
+    attached: function () {
+      this.async(function () {
+        this.started = true;
+      }, 100);
+    },
+
+    resultsChanged: function (results, oldResults) {
+      if (!this.chart || !results) {
+        return;
+      }
+
+      Array.observe(results.data, this.forceUpdate.bind(this));
+      this.chart.results = results;
+    },
+
+    forceUpdate: function () {
+      this.notifyPath('results.average', this.results.average.toFixed(2));
+      this.notifyPath('results.data.length', this.results.data.length);
+      this.notifyPath('results.maxLength', this.results.maxLength);
+      this.notifyPath('results.standardDeviation', this.results.standardDeviation.toFixed(2));
+      this.complete = this.computeComplete();
+      this.chart.update();
+    },
+
+    computeComplete: function () {
+      return this.results.data.length === this.results.maxLength;
+    },
+
+    computeShadowZ: function () {
+      return this.complete ? 0 : 1;
+    },
+  });
+</script>

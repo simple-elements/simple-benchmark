@@ -1,0 +1,233 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="./simple-pending-results.html">
+<dom-module id="simple-benchmark">
+  <style>
+    #frame {
+      display: block;
+      position: absolute;
+      visibility: hidden;
+      top: -9999px;
+      left: -9999px
+    }
+
+    .results {
+      display: block;
+      position: relative;
+    }
+
+    .results simple-pending-results {
+      display: block;
+      margin-top: -103px;
+      margin-bottom: 14px;
+      opacity: 0;
+
+      transition: margin-top 0.5s cubic-bezier(.44,.13,.18,.99),
+                  opacity 0.5s cubic-bezier(.44,.13,.18,.99);
+    }
+
+    .results simple-pending-results[started] {
+      display: block;
+      position: relative;
+      margin-top: 0;
+      opacity: 1;
+    }
+  </style>
+  <template>
+    <iframe id="frame"></iframe>
+    <content></content>
+    <section class="results">
+      <template is="x-repeat" items="[[results]]">
+        <simple-pending-results results=[[item]]></simple-pending-result>
+      </template>
+    </section>
+  </template>
+</dom-module>
+<script>
+  (function () {
+    function SetupFrame() {
+      'use strict';
+
+      function Test () {
+        this.startTime = -1;
+        this.stopTime = -1;
+      }
+
+      Test.now = function () {
+        if (window.performance && window.performance.now) {
+          return window.performance.now();
+        }
+
+        return Date.now();
+      }
+
+      Test.prototype = {
+        start: function () {
+          this.startTime = Test.now();
+        },
+
+        stop: function () {
+          this.stopTime = Test.now();
+        },
+
+        report: function () {
+          window.parent.postMessage({
+            elapsed: this.stopTime - this.startTime
+          }, '*');
+        }
+      };
+
+      window.StartTest = function () {
+        window.__simple_benchmark_test__ = new Test();
+      };
+
+      window.EndTest = function () {
+        window.__simple_benchmark_test__.stop();
+        window.__simple_benchmark_test__.report();
+      };
+    }
+
+    var PREAMBLE = '<head><base href="' +
+      new URL('./', document.baseURI).href +
+      '"></base></head><body><script>(' +
+      SetupFrame.toString() +
+      ')();<\/script>';
+    var POSTAMBLE = '</body>';
+
+    function TestResults (name, maxLength) {
+      this.name = name;
+      this.maxLength = maxLength;
+      this.data = [];
+      this.average = 0;
+    }
+
+    TestResults.prototype = {
+      addResult: function (result) {
+        this.data.push(result);
+      },
+
+      get average () {
+        return this.data.length && this.data.reduce(function (sum, datum) {
+          return sum + datum.elapsed;
+        }, 0) / this.data.length;
+      },
+
+      get series () {
+        return this.data.map(function (result) {
+          return result.elapsed;
+        });
+      },
+
+      get variance () {
+        var average = this.average;
+
+        return this.data.length && this.data.reduce(function (variance, datum) {
+          return variance + Math.pow(datum.elapsed - average, 2);
+        }, 0) / this.data.length;
+      },
+
+      get standardDeviation () {
+        return Math.sqrt(this.variance);
+      }
+    };
+
+    Polymer({
+      is: 'simple-benchmark',
+
+      properties: {
+        runsPerTest: {
+          type: Number
+        },
+
+        results: {
+          type: Array,
+
+          value: function () {
+            return [];
+          }
+        },
+
+        preamble: {
+          value: PREAMBLE
+        },
+
+        postamble: {
+          value: POSTAMBLE
+        }
+      },
+
+      get testTemplates () {
+        return Polymer.dom.querySelectorAll('template', this);
+      },
+
+      createTestUrlFor: function (template) {
+        var parts = [
+          this.preamble,
+          template.innerHTML,
+          this.postamble
+        ];
+        var mime = {
+          type: 'text/html'
+        };
+
+        return URL.createObjectURL(new Blob(parts, mime));
+      },
+
+      awaitTestCompletion: function () {
+        return new Promise(function (resolve, reject) {
+          var timeout = window.setTimeout(function () {
+            reject(new Error('Test timed out after 30 seconds.'));
+          }, 30000);
+
+          window.addEventListener('message', function onMessage (message) {
+            window.clearTimeout(timeout);
+            window.removeEventListener('message', onMessage);
+            resolve(message.data);
+          });
+        }.bind(this));
+      },
+
+      runTests: function () {
+        var testQueue = Promise.resolve();
+
+        this.testTemplates.reverse().forEach(function (testTemplate) {
+          var results = new TestResults(testTemplate.dataset.name, this.runsPerTest);
+
+          testQueue = testQueue.then(function () {
+            this.results.unshift(results);
+            return new Promise(function (resolve) {
+              // Delay about 1s between tests..
+              window.setTimeout(resolve, 1000);
+            });
+          }.bind(this)).then(function () {
+
+            var runQueue = Promise.resolve();
+            var run;
+
+
+            for (var run = 0; run < this.runsPerTest; ++run) {
+              runQueue = runQueue.then(function () {
+                var url = this.createTestUrlFor(testTemplate);
+
+                var testCompletes = this.awaitTestCompletion().then(function (result) {
+                  results.addResult(result)
+                  URL.revokeObjectURL(url);
+                }.bind(this)).catch(function (error) {
+                  console.error('TEST FAILED.', error);
+                  URL.revokeObjectURL(url);
+                });
+
+                this.$.frame.src = url;
+
+                return testCompletes;
+              }.bind(this));
+            }
+
+            return runQueue;
+          }.bind(this)).then(function () {
+            console.log('RESULT', results.name, results.average);
+          });
+        }, this);
+      }
+    });
+  })();
+</script>
