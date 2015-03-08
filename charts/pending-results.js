@@ -10,6 +10,7 @@
   Scale.prototype = {
     update: function () {
       var extent = d3.extent(this.chart.data);
+      var extentPadding = (extent[1] - extent[0]) / 4;
 
       this.x
         .range([this.left, this.right])
@@ -18,8 +19,8 @@
       this.y
         .range([this.bottom, this.top])
         .domain([
-          extent[0] - 10,
-          extent[1] + 10,
+          extent[0] - extentPadding,
+          extent[1] + extentPadding,
         ]);
     },
 

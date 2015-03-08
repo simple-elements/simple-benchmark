@@ -31,7 +31,7 @@
         <script>
           StartTest();
         </script>
-        <extended-button id="ExtendedButton">Extended Button</extended-button>
+        <button is="extended-button" id="ExtendedButton">Extended Button</button>
         <script>
           ExtendedButton.disabled = true;
           ExtendedButton.removeAttribute('disabled');
@@ -40,6 +40,20 @@
           EndTest();
         </script>
       </template>
+      <template data-name="Control">
+        <script>
+          StartTest();
+          EndTest();
+        </script>
+      </template>
+      <template data-name="Control w/ import">
+        <link rel="import" href="./extended-button.html">
+        <script>
+          StartTest();
+          EndTest();
+        </script>
+      </template>
+
     </simple-benchmark>
     <script>
       document.body.querySelector('simple-benchmark').runTests();
